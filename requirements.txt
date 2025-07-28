@@ -1,6 +1,8 @@
 pypdf
 langchain
 langchain-community
+langchain_openai
+langchain_chroma
 openai
 tiktoken
 chromadb ==0.4.24

@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 load_dotenv()
 import argparse
 import openai
-from langchain_community.vectorstores import Chroma
+from langchain_chroma import Chroma
 from langchain_openai import OpenAIEmbeddings
 
 CHROMA_DB_PATH = "db/chroma_db"

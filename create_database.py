@@ -27,19 +27,19 @@ def load_documents(path: str) -> list[Document]:
     return documents
 
 def split_documents(documents: list[Document]) -> list[Document]:
-    """Split documents into smaller chunks."""
-    pattern = r"(第[一二三四五六七八九十百千萬]+條\s)"
+    """Split documents into smaller chunks, including number, title, content."""
     documents_onepage = ""
     for doc in documents:
         documents_onepage += doc.page_content + "\n"
-    # 使用正則表達式分割文檔內容        
-    parts = re.split(pattern,  documents_onepage)
+    # 使用正則表達式分割文檔內容 [^\n]+ 表示匹配「直到遇到換行之前的所有文字」        
+    pattern = pattern = r"(第[一二三四五六七八九十百千萬]+條)\s+([^\n]+)\n([\s\S]*?)(?=\n第[一二三四五六七八九十百千萬]+條\s|$)"
+    matches = re.findall(pattern,  documents_onepage)
     chunks = []
-    for i in range(1, len(parts), 2):  # 從 index 1 開始每兩個一組
-        title = parts[i].strip()
-        content = parts[i+1].strip() if i+1 < len(parts) else ""
-        full_text = f"{title}\n{content}"
-        chunks.append(Document(page_content=full_text, metadata={"law_article": title}))
+    for number, title, content in matches:  # 從 index 1 開始每兩個一組
+        number = number.strip()
+        title = title.strip()       
+        content = content.strip()
+        chunks.append(Document(page_content=title, metadata={"law_number":number,"law_title": title,"content": content}))
 
     return chunks 
 
