@@ -1,0 +1,10 @@
+pypdf
+langchain
+langchain-community
+openai
+tiktoken
+chromadb ==0.4.24
+pytest
+boto3
+numpy==1.26.4
+onnxruntime
