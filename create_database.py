@@ -17,7 +17,7 @@ from langchain_chroma import Chroma
 
 
 DATA_PATH = "data/海外旅行不便險條款.pdf"
-CHROMA_DB_PATH = "db/chroma_db"
+CHROMA_DB_PATH = "db_1/chroma_db"
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
 def load_documents(path: str) -> list[Document]:
@@ -26,20 +26,29 @@ def load_documents(path: str) -> list[Document]:
     documents = loader.load()
     return documents
 
+def clean_content(text):
+    # 移除多餘換行與空格
+    text = re.sub(r"\n+", "", text)
+    text = re.sub(r"[ \t]+", "", text)
+    # 移除句中不必要的換行
+    text = re.sub(r"(?<![。！？])\n", " ", text)
+    return text.strip()
+
 def split_documents(documents: list[Document]) -> list[Document]:
     """Split documents into smaller chunks, including number, title, content."""
     documents_onepage = ""
     for doc in documents:
         documents_onepage += doc.page_content + "\n"
     # 使用正則表達式分割文檔內容 [^\n]+ 表示匹配「直到遇到換行之前的所有文字」        
-    pattern = pattern = r"(第[一二三四五六七八九十百千萬]+條)\s+([^\n]+)\n([\s\S]*?)(?=\n第[一二三四五六七八九十百千萬]+條\s|$)"
+    pattern = r"(第[一二三四五六七八九十百千萬]+條)\s+([^\n]+)\n([\s\S]*?)(?=\n第[一二三四五六七八九十百千萬]+條\s|$)"
     matches = re.findall(pattern,  documents_onepage)
     chunks = []
     for number, title, content in matches:  # 從 index 1 開始每兩個一組
         number = number.strip()
         title = title.strip()       
-        content = content.strip()
-        chunks.append(Document(page_content=title, metadata={"law_number":number,"law_title": title,"content": content}))
+        content = clean_content(content)
+        chunks.append(Document(page_content=f"{title}:{content}", 
+                               metadata={"law_number":number,"law_title": title,"content": content}))
 
     return chunks 
 
