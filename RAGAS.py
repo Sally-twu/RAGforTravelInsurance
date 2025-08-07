@@ -14,6 +14,7 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 from datasets import Dataset
+import pandas as pd
 import openai
 from langchain_chroma import Chroma
 from langchain_openai import OpenAIEmbeddings
@@ -56,11 +57,23 @@ data_sample = {
 }
 
 for question, ground_truth in zip(questions, ground_truths):
-    results = db.similarity_search_with_relevance_scores(question, k=3)
-    contexts= [doc.page_content for doc, _score in results]
-    context_text_str = "\n\n".join([doc.page_content for doc, _score in results])
+    results = db.similarity_search_with_relevance_scores(question, k=10)
+    context = [doc.page_content for doc, _score in results]
+    relevant_ids = [doc.metadata.get('parent_id') for doc, _score in results]
+    df = pd.read_csv("chunks.csv")
+    matched_laws = df[df["parent_id"].isin(relevant_ids)]
+    
+    output_text = ""
+
+    for pid, group in matched_laws.groupby("parent_id"):
+        title = group["parent_title"].iloc[0]  # 每組的 title 都一樣，取第一個即可
+        output_text += f"{pid} - {title}\n"
+        for _, row in group.iterrows():
+            output_text += f"【{row['section']}】{row['content']}\n"
+        
+        output_text += "=" * 80 + "\n"
     prompt_template = ChatPromptTemplate.from_template(PROMPT_TEMPLATE)
-    prompt = prompt_template.format(context=context_text_str, question=question)
+    prompt = prompt_template.format(context=output_text, question=question)
     
     # Create the LLM
     llm = ChatOpenAI(temperature=0, model_name="gpt-4")
@@ -69,7 +82,7 @@ for question, ground_truth in zip(questions, ground_truths):
     data_sample["question"].append(question)
     data_sample["answer"].append(response_text.content.strip())
     data_sample["ground_truth"].append(ground_truth)
-    data_sample["contexts"].append(contexts)
+    data_sample["contexts"].append(context)
 
 print(data_sample)
 dataset = Dataset.from_dict(data_sample)
